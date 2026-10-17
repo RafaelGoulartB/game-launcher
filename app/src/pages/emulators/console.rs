@@ -133,12 +133,17 @@ impl EmulatorsPage {
         let Some(s) = self.console_summary(id) else { return };
         let title = s.emulator.name.clone();
         let rows = vec![
+            Row::action("open", tr!("Open emulator"))
+                .desc(tr!("Starts it without a game, to change its settings"))
+                .icon(Icon::PlayArrow)
+                .enabled(s.health.is_ok()),
             Row::action("edit", tr!("Edit\u{2026}")).icon(Icon::Edit),
             Row::action("dup", tr!("Duplicate")).icon(Icon::Add),
             Row::action("rm", tr!("Remove\u{2026}")).icon(Icon::FaTrash).danger(),
         ];
         let id = id.to_string();
         open_sheet(&mut self.layer, title, None, rows, window, cx, move |this: &mut Self, pick, window, cx| match pick {
+            "open" => this.open_emulator(&id, cx),
             "edit" => this.open_edit_emulator(&id, window, cx),
             "dup" => this.duplicate(&id, cx),
             "rm" => this.confirm_remove_emulator(&id, window, cx),

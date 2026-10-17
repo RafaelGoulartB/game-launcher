@@ -366,6 +366,24 @@ fn native_emulator_gets_its_rom_and_stop_pattern() {
 }
 
 #[test]
+fn open_emulator_runs_it_without_a_game() {
+    let native = UserEmulator { executable: "/emu/pcsx2.AppImage".into(), launch_kind: "native".into(), ..Default::default() };
+    let probe = FakeProbe::new("/h").with_path("/emu/pcsx2.AppImage");
+    let c = open_emulator_command(&ctx(json!({})), &probe, &settings(json!({})), &native).unwrap();
+    assert_eq!(c.program, "/emu/pcsx2.AppImage");
+    assert!(c.args.is_empty());
+    assert_eq!(c.cwd.as_deref(), Some("/emu"));
+
+    let flatpak = UserEmulator { launch_kind: "flatpak".into(), flatpak_id: Some("net.rpcs3.RPCS3".into()), ..Default::default() };
+    let c = open_emulator_command(&ctx(json!({})), &probe, &settings(json!({})), &flatpak).unwrap();
+    assert_eq!(c.program, "flatpak");
+    assert_eq!(c.args, ["run", "net.rpcs3.RPCS3"]);
+
+    let gone = UserEmulator { executable: "/emu/gone".into(), launch_kind: "native".into(), ..Default::default() };
+    assert!(open_emulator_command(&ctx(json!({})), &probe, &settings(json!({})), &gone).is_err());
+}
+
+#[test]
 fn save_state_args_go_first_and_can_replace_the_image() {
     let emu = UserEmulator {
         id: "e1".into(),

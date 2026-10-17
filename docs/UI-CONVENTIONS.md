@@ -106,9 +106,17 @@ are not clipped to the rounded corners: give edge-to-edge children their own rad
 **Collection header** (`collection/header.rs`, the one place the main screen departs from Heronite, by user
 decision): faint, no bar fill. Over the list column: ☰ (`tool_button`, radius 10, icon `theme::tool_icon()`), the
 search pill (`search_fill`, accent ring while focused, clear button) and the View button (`Icon::Tune`, accent while
-anything is filtered) whose single menu holds Show (segmented), Sort by (segmented), Group by status / Show hidden
-games (switches), Filter by (facet rows with a flyout to the right) and Manage statuses. Each active filter appears
-as a removable `filter_chip` after it. Right: in the grid the cover size slider and the "Aa" titles switch, the
+anything is filtered). Its menu (`collection/view_menu/`) starts with a search box: the active filters sit in it as
+tokens (click or Backspace removes one) and typing lists matching values of every kind (Only, Status, Category,
+Store, Genre, Developer, Publisher, Series, Platform) with counts, four per kind until `kind:` narrows it; ↑ ↓ and
+Enter pick. Below, when nothing is typed: Presets (a `select_menu_field` showing the preset on screen, else "Custom"; a preset applies
+everything the menu sets: filters, sort, grouping, hidden games; four built-in ones are added to the user's list once
+and are then ordinary presets; under them "Save as preset…" while none matches and "Edit presets…", which lists them
+with move, store current state, rename and delete, plus "Restore default presets"; stored as `savedViews`), Sort
+(segmented + direction), Group by (None | Status), Show (segmented with counts), Only (Favourites, Update, Offline,
+Hidden tiles) and Browse (one chip per kind, fills `kind:`); the footer has the count, Reset all and Statuses…. Several
+values of a kind add up (any of them); kinds combine. While its box has the keyboard the menu stays open until Esc or
+a click outside. Each active filter also appears as a removable `filter_chip` after the button. Right: in the grid the cover size slider and the "Aa" titles switch, the
 Focus / Grid switch (`grid.rs`), bulk metadata, refresh, close focus (Focus view only). Header menus open on click or
 after a 140ms hover (`OPEN_DELAY`) and close 180ms after the pointer leaves. The ☰ menu (`nav.rs`) is a list:
 pages grouped (Collection, Downloads, Statistics | Stores, Wine Manager, Emulators), then Add game, Console mode,
@@ -236,7 +244,7 @@ checkboxes or flat grey modals in new UI. Colours come from `theme` (`text_prima
 drawn before the compositor stopped sending frames, so late images (art, covers)
 are missing. Take a first capture to wake the window, wait a second, then take
 the real one (a modified copy of `scripts/shot.sh` doing `grim -T` twice).
-`HERONITE_DEBUG_DROPDOWN=nav|view|facets`, `HERONITE_DEBUG_MENU=<key>`,
+`HERONITE_DEBUG_DROPDOWN=nav|view|view:<text>`, `HERONITE_DEBUG_MENU=<key>`,
 `HERONITE_DEBUG_DIALOG=...`, `HERONITE_DEBUG_PAGE=...`. Copy
 `~/.local/share/heronite/images-cache` into the fixture or no art appears at all.
 
@@ -272,7 +280,7 @@ the real one (a modified copy of `scripts/shot.sh` doing `grim -T` twice).
   off-screen), prints PSS and closes it. Never open windows anywhere else,
   never switch workspaces, never move/click the real mouse.
 - Debug hooks (env, via `SHOT_ENV="..."`): `HERONITE_DEBUG_SELECT=<runner_appName>`,
-  `HERONITE_DEBUG_MENU=<key>` (context menu), `HERONITE_DEBUG_DROPDOWN=view|facets|nav`,
+  `HERONITE_DEBUG_MENU=<key>` (context menu), `HERONITE_DEBUG_DROPDOWN=view|view:<text>|nav`,
   `HERONITE_DEBUG_DIALOG=settings|statuses|gamesettings:<tab>|onboarding[:<step>]` (extend the match in
   `CollectionView::render` for new dialogs; `settings:<section>` opens that Settings section,
   `onboarding:<step>` the getting-started checklist on a step such as `palette` or `screenshots`).

@@ -44,14 +44,13 @@ pub enum Align {
 }
 
 /// Hover callback of a dropdown: `(part, hovered)`. Parts: 1 = button,
-/// 2 = menu panel; callers may use further bits for nested flyouts. The menu
-/// rendered in a deferred layer is outside the button's hitbox, so each part
-/// reports its own hover and the owner closes only when none is hovered.
+/// 2 = menu panel. The menu rendered in a deferred layer is outside the
+/// button's hitbox, so each part reports its own hover and the owner closes
+/// only when none is hovered.
 pub type HoverFn = std::rc::Rc<dyn Fn(u8, bool, &mut Window, &mut App)>;
 
 pub const PART_BUTTON: u8 = 1;
 pub const PART_PANEL: u8 = 2;
-pub const PART_FLYOUT: u8 = 4;
 
 /// Wraps `button` and, when open, the `menu` anchored below it.
 pub fn dropdown(

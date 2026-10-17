@@ -13,11 +13,12 @@
 use std::path::{Component, Path, PathBuf};
 
 use anyhow::Result;
-use heronite_i18n::tr;
+use heronite_i18n::{tr, trn};
 use serde_json::Value;
 
 use crate::game_config;
 use crate::json_store;
+use crate::library::Library;
 use crate::paths::DataPaths;
 use crate::sideload::check_prefix_removable;
 
@@ -79,7 +80,7 @@ pub fn plan(paths: &DataPaths, input: &UninstallInput) -> UninstallPlan {
     .filter(|p| !p.is_empty())
     .map(|p| PathBuf::from(game_config::expand_tilde(&p, input.home)))
     .collect();
-    let other_prefixes = other_game_prefixes(paths, input.app_name, input.home);
+    let other_prefixes: Vec<PathBuf> = other_game_prefixes(paths, input.app_name, input.home).into_iter().map(|(_, p)| p).collect();
 
     let prefix = if input.windows { own_prefix(paths, input.app_name, input.home) } else { None };
     let prefix = prefix.filter(|p| p.exists()).map(|path| {
@@ -167,8 +168,8 @@ fn own_prefix(paths: &DataPaths, app_name: &str, home: &str) -> Option<PathBuf> 
     settings.get("winePrefix").and_then(Value::as_str).filter(|p| !p.trim().is_empty()).map(PathBuf::from)
 }
 
-/// `winePrefix` set in the config file of every other game.
-fn other_game_prefixes(paths: &DataPaths, app_name: &str, home: &str) -> Vec<PathBuf> {
+/// `(app name, winePrefix)` set in the config file of every other game.
+fn other_game_prefixes(paths: &DataPaths, app_name: &str, home: &str) -> Vec<(String, PathBuf)> {
     let Ok(dir) = std::fs::read_dir(paths.games_config_dir()) else { return Vec::new() };
     let mut out = Vec::new();
     for entry in dir.flatten() {
@@ -180,11 +181,40 @@ fn other_game_prefixes(paths: &DataPaths, app_name: &str, home: &str) -> Vec<Pat
         let Ok(doc) = json_store::read_value(&entry.path()) else { continue };
         if let Some(p) = doc.get(app).and_then(|s| s.get("winePrefix")).and_then(Value::as_str) {
             if !p.trim().is_empty() {
-                out.push(PathBuf::from(game_config::expand_tilde(p, home)));
+                out.push((app.to_string(), PathBuf::from(game_config::expand_tilde(p, home))));
             }
         }
     }
     out
+}
+
+/// Why `prefix` must be kept when `app_name` goes: other games have their
+/// prefix there (or inside it), so deleting it deletes theirs. `None` when
+/// no other game uses it. Games are named by their title in `lib`; settings
+/// of games `lib` leaves out (hidden ones) still count, unnamed.
+pub fn prefix_shared_note(paths: &DataPaths, lib: &Library, app_name: &str, prefix: &Path, home: &str) -> Option<String> {
+    let users: Vec<String> = other_game_prefixes(paths, app_name, home)
+        .into_iter()
+        .filter(|(_, p)| inside(p, prefix) || same_path(p, prefix))
+        .map(|(app, _)| app)
+        .collect();
+    if users.is_empty() {
+        return None;
+    }
+    let mut titles: Vec<&str> =
+        users.iter().filter_map(|app| lib.games.iter().find(|g| &g.app_name == app)).map(|g| g.title.as_str()).collect();
+    titles.sort_by_key(|t| t.to_lowercase());
+    titles.dedup();
+    let shown = titles.len().min(3);
+    let rest = users.len() - shown;
+    if shown == 0 {
+        return Some(trn!(rest, "Also used by {n} other game, so it is kept.", "Also used by {n} other games, so it is kept."));
+    }
+    let mut games = titles[..shown].join(", ");
+    if rest > 0 {
+        games = trn!(rest, "{games} and {n} other game", "{games} and {n} other games", games);
+    }
+    Some(tr!("Also used by {games}, so it is kept.", games))
 }
 
 fn prefix_blocked(prefix: &Path, defaults: &[PathBuf], other_prefixes: &[PathBuf], others: &[PathBuf], home: &Path) -> Option<String> {
@@ -408,5 +438,26 @@ mod tests {
         let link = e.home.join("Games/Link");
         std::os::unix::fs::symlink(&real, &link).unwrap();
         assert!(e.plan(Some(&link), &[]).files.unwrap().blocked.unwrap().contains("link"));
+    }
+
+    #[test]
+    fn shared_prefix_note_names_the_other_games() {
+        let e = env();
+        let lib = |e: &Env| Library::load(&e.paths).unwrap();
+        let prefix = e.mkdir("Prefixes/A");
+        e.set_prefix("a", &prefix);
+        assert_eq!(prefix_shared_note(&e.paths, &lib(&e), "a", &prefix, e.home()), None);
+
+        e.set_prefix("b", &prefix.join("pfx"));
+        assert_eq!(prefix_shared_note(&e.paths, &lib(&e), "a", &prefix, e.home()).unwrap(), "Also used by B, so it is kept.");
+
+        // A game the library leaves out (hidden) still keeps the prefix.
+        e.set_prefix("gone", &prefix);
+        assert_eq!(
+            prefix_shared_note(&e.paths, &lib(&e), "a", &prefix, e.home()).unwrap(),
+            "Also used by B and 1 other game, so it is kept."
+        );
+        e.set_prefix("b", &e.mkdir("Prefixes/B"));
+        assert_eq!(prefix_shared_note(&e.paths, &lib(&e), "a", &prefix, e.home()).unwrap(), "Also used by 1 other game, so it is kept.");
     }
 }

@@ -13,7 +13,6 @@ use crate::icons::Icon;
 use crate::theme;
 use crate::ui::controls::{button_sm, ButtonKind};
 use crate::ui::icon;
-use heronite_data::InstallFilter;
 use heronite_i18n::tr;
 
 impl CollectionView {
@@ -239,7 +238,7 @@ impl CollectionView {
 
     /// The list when the search and the filters hide every game.
     fn render_no_match(&self, cx: &mut Context<Self>) -> Div {
-        let filtered = self.ui.install_filter != InstallFilter::All || self.ui.facet_filters.is_active();
+        let filtered = self.ui.active_filters() > 0;
         let hint = if filtered { tr!("Try another search, or clear the filters.") } else { tr!("Try another name.") };
         div()
             .absolute()
@@ -265,8 +264,7 @@ impl CollectionView {
                 |this, _, window, cx| {
                     this.search.clear();
                     this.search_input.update(cx, |s, cx| s.set_value("", window, cx));
-                    this.ui.clear_facets();
-                    this.ui.install_filter = InstallFilter::All;
+                    this.ui.clear_filters();
                     this.save_ui();
                     this.refresh_groups();
                     cx.notify();

@@ -201,6 +201,7 @@ impl SettingsPanel {
             .map(|(i, w)| SelectOption {
                 label: logic::display_wine_name(&w.name).into(),
                 selected: i == selected,
+                dot: None,
                 group: Some(logic::wine_group(w).into()),
                 note: (self.global_wine.as_deref() == Some(w.name.as_str())).then(|| tr!("default").into()),
             })

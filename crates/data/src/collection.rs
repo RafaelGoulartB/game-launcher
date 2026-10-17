@@ -106,19 +106,20 @@ impl FacetKind {
     }
 }
 
-/// `CollectionFacetFilters`: at most one selected value per kind.
+/// `CollectionFacetFilters`, with several values per kind: a game matches a
+/// kind when it has any of its values (Heronite kept one per kind).
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FacetFilters {
-    pub series: Option<String>,
-    pub developer: Option<String>,
-    pub publisher: Option<String>,
-    pub genre: Option<String>,
-    pub platform: Option<String>,
-    pub store: Option<String>,
+    pub series: Vec<String>,
+    pub developer: Vec<String>,
+    pub publisher: Vec<String>,
+    pub genre: Vec<String>,
+    pub platform: Vec<String>,
+    pub store: Vec<String>,
 }
 
 impl FacetFilters {
-    pub fn get(&self, kind: FacetKind) -> Option<&str> {
+    pub fn get(&self, kind: FacetKind) -> &[String] {
         match kind {
             FacetKind::Series => &self.series,
             FacetKind::Developer => &self.developer,
@@ -127,10 +128,9 @@ impl FacetFilters {
             FacetKind::Platform => &self.platform,
             FacetKind::Store => &self.store,
         }
-        .as_deref()
     }
 
-    fn slot(&mut self, kind: FacetKind) -> &mut Option<String> {
+    fn slot(&mut self, kind: FacetKind) -> &mut Vec<String> {
         match kind {
             FacetKind::Series => &mut self.series,
             FacetKind::Developer => &mut self.developer,
@@ -143,15 +143,45 @@ impl FacetFilters {
 
     /// `hasFacetFilters`.
     pub fn is_active(&self) -> bool {
-        FACET_KINDS.iter().any(|k| self.get(*k).is_some_and(|v| !v.is_empty()))
+        FACET_KINDS.iter().any(|k| !self.get(*k).is_empty())
     }
 
-    /// `toggleFacetFilter`: selecting the active value clears it.
+    /// Selected values, all kinds together.
+    pub fn len(&self) -> usize {
+        FACET_KINDS.iter().map(|k| self.get(*k).len()).sum()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        !self.is_active()
+    }
+
+    /// Whether `value` is selected (same [`facet_key`]).
+    pub fn contains(&self, kind: FacetKind, value: &str) -> bool {
+        let key = facet_key(value);
+        self.get(kind).iter().any(|v| facet_key(v) == key)
+    }
+
+    /// `toggleFacetFilter`: adds the value, or removes it when selected.
     pub fn toggled(&self, kind: FacetKind, value: &str) -> Self {
         let mut next = self.clone();
-        let same = self.get(kind).is_some_and(|sel| !sel.is_empty() && facet_key(sel) == facet_key(value));
-        *next.slot(kind) = if same { None } else { Some(value.to_owned()) };
+        let key = facet_key(value);
+        let slot = next.slot(kind);
+        let before = slot.len();
+        slot.retain(|v| facet_key(v) != key);
+        if slot.len() == before && !key.is_empty() {
+            slot.push(value.trim().to_owned());
+        }
         next
+    }
+
+    pub fn clear_kind(&mut self, kind: FacetKind) {
+        self.slot(kind).clear();
+    }
+
+    /// The same values per kind, in any order or spelling.
+    pub fn same_as(&self, other: &Self) -> bool {
+        let keys = |f: &Self, k: FacetKind| f.get(k).iter().map(|v| facet_key(v)).collect::<HashSet<_>>();
+        FACET_KINDS.iter().all(|k| keys(self, *k) == keys(other, *k))
     }
 }
 
@@ -220,17 +250,19 @@ pub fn store_facet(source: Option<&str>, runner: &str, steam_entry: bool, also_o
     items(values)
 }
 
-/// `matchesFacets`: every active kind must match one of the game's values.
+/// `matchesFacets`: every active kind must match one of the game's values
+/// (any of the selected ones).
 pub fn matches_facets(game: &CollectionGame, filters: &FacetFilters) -> bool {
     if !filters.is_active() {
         return true;
     }
-    FACET_KINDS.iter().all(|kind| match filters.get(*kind).filter(|v| !v.is_empty()) {
-        None => true,
-        Some(selected) => {
-            let wanted = facet_key(selected);
-            game.facets[kind.index()].iter().any(|item| item.key == wanted)
-        }
+    FACET_KINDS.iter().all(|kind| {
+        let selected = filters.get(*kind);
+        selected.is_empty()
+            || selected.iter().any(|s| {
+                let wanted = facet_key(s);
+                game.facets[kind.index()].iter().any(|item| item.key == wanted)
+            })
     })
 }
 
@@ -647,8 +679,13 @@ mod tests {
         assert_eq!(run(ViewQuery { facets: facets.clone(), ..Default::default() }), ["a", "b"]);
         let both = facets.toggled(FacetKind::Genre, "Puzzle");
         assert_eq!(run(ViewQuery { facets: both.clone(), ..Default::default() }), ["b"]);
-        // toggling the same value clears it
-        assert_eq!(both.toggled(FacetKind::Genre, " puzzle ").genre, None);
+        // several values of a kind add up; toggling one again removes it
+        let either = both.toggled(FacetKind::Genre, "Shooter");
+        assert_eq!(run(ViewQuery { facets: either.clone(), ..Default::default() }), ["a", "b"]);
+        assert_eq!(either.len(), 3);
+        assert!(either.contains(FacetKind::Genre, " shooter "));
+        assert!(either.same_as(&facets.toggled(FacetKind::Genre, "shooter").toggled(FacetKind::Genre, "PUZZLE")));
+        assert!(both.toggled(FacetKind::Genre, " puzzle ").genre.is_empty());
         assert!(!FacetFilters::default().is_active());
 
         let options = collect_facet_options(&games);

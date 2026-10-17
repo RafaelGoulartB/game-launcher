@@ -276,7 +276,10 @@ fn steam_spec(game: &CollectionGame, icon: Option<&Path>) -> ShortcutSpec {
     ShortcutSpec {
         exe: format!("\"{}\"", exe.display()),
         start_dir: format!("\"{}\"", start_dir.display()),
-        launch_options: format!("--no-gui \"{}\"", heronite_shortcuts::launch_url("heronite-rs", &game.runner, &game.app_name)),
+        launch_options: format!(
+            "--no-gui \"{}\"",
+            heronite_shortcuts::launch_url(crate::system::cli::SCHEME, &game.runner, &game.app_name)
+        ),
         icon: icon.map(|p| p.to_string_lossy().into_owned()),
         last_play_time: last_play_secs(game),
     }
@@ -584,7 +587,7 @@ mod tests {
         assert!(is_added_to_steam(&data_paths, &runner, &app));
         let vdf = fs::read(steam.join("userdata/4242/config/shortcuts.vdf")).unwrap();
         let vdf = String::from_utf8_lossy(&vdf);
-        assert!(vdf.contains(&format!("heronite-rs://launch?appName={app}&runner={runner}")));
+        assert!(vdf.contains(&format!("heronite://launch?appName={app}&runner={runner}")));
 
         let out = remove_from_steam(&data_paths, &runner, &app);
         assert!(out.messages.iter().all(|m| !m.error), "{out:?}");

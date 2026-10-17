@@ -23,9 +23,10 @@ pub const TRANSPARENT_LOGO_PNG: [u8; 68] = [
     0x60, 0x82,
 ];
 
-/// URL scheme whose `launch` links identify a shortcut as this game's.
+/// URL schemes whose `launch` links identify a shortcut as this game's: the
+/// current one and its earlier name (shortcuts made before the rename).
 /// Shortcuts made by Heroic (`heroic://`) are Heroic's and left alone.
-const SCHEME: &str = "heronite-rs";
+const SCHEMES: [&str; 2] = ["heronite", "heronite-rs"];
 
 // Ids (steam-rom-manager's generate-app-id)
 
@@ -189,7 +190,7 @@ pub fn matches_shortcut(exe: &str, shortcut_path: &str, launch_options: &str, ga
 /// Does a shortcut point at `game`? Matches this app's launch links in
 /// Heroic's forms (`appName=X&runner=Y`, `launch/X"`, `launch/Y/X"`).
 pub fn matches_game(launch_options: &str, game: &GameId) -> bool {
-    launch_options.contains(&format!("{SCHEME}://launch"))
+    SCHEMES.iter().any(|scheme| launch_options.contains(&format!("{scheme}://launch")))
         && (launch_options.contains(&format!("appName={}&runner={}", game.app_name, game.runner))
             || launch_options.contains(&format!("launch/{}\"", game.app_name))
             || launch_options.contains(&format!("launch/{}/{}\"", game.runner, game.app_name)))
@@ -532,7 +533,7 @@ mod tests {
         ShortcutSpec {
             exe: "\"/opt/heronite-rs/heronite-rs\"".into(),
             start_dir: "\"/opt/heronite-rs\"".into(),
-            launch_options: "--no-gui \"heronite-rs://launch?appName=Quail&runner=legendary\"".into(),
+            launch_options: "--no-gui \"heronite://launch?appName=Quail&runner=legendary\"".into(),
             icon: Some("/icons/Quail.png".into()),
             last_play_time: Some(1_700_000_000),
         }
@@ -599,12 +600,13 @@ mod tests {
     #[test]
     fn launch_option_matching() {
         let g = game();
-        assert!(matches_game("--no-gui \"heronite-rs://launch?appName=Quail&runner=legendary\"", &g));
-        assert!(matches_game("\"heronite-rs://launch/Quail\"", &g));
-        assert!(matches_game("\"heronite-rs://launch/legendary/Quail\"", &g));
+        assert!(matches_game("--no-gui \"heronite://launch?appName=Quail&runner=legendary\"", &g));
+        assert!(matches_game("\"heronite://launch/Quail\"", &g));
+        assert!(matches_game("\"heronite://launch/legendary/Quail\"", &g));
+        assert!(matches_game("--no-gui \"heronite-rs://launch?appName=Quail&runner=legendary\"", &g), "made before the rename");
         assert!(!matches_game("--no-gui --no-sandbox \"heroic://launch?appName=Quail&runner=legendary\"", &g), "Heroic's shortcut");
-        assert!(!matches_game("--no-gui \"heronite-rs://launch?appName=QuailX&runner=legendary\"", &g));
-        assert!(!matches_game("--no-gui \"heronite-rs://launch?appName=Quail&runner=gog\"", &g));
+        assert!(!matches_game("--no-gui \"heronite://launch?appName=QuailX&runner=legendary\"", &g));
+        assert!(!matches_game("--no-gui \"heronite://launch?appName=Quail&runner=gog\"", &g));
         assert!(!matches_game("something else Quail legendary", &g));
     }
 
@@ -617,7 +619,7 @@ mod tests {
         assert!(!matches_shortcut(&format!("\"{heroics}\""), "", "", &g), "Heroic's wrapper");
         assert!(!matches_shortcut("", "/x/heronite-rs-steam-shortcuts/legendary-QuailX.desktop", "", &g));
         assert!(!matches_shortcut("", "/x/other/legendary-Quail.desktop", "", &g));
-        assert!(matches_shortcut("", "", "\"heronite-rs://launch/Quail\"", &g));
+        assert!(matches_shortcut("", "", "\"heronite://launch/Quail\"", &g));
     }
 
     #[test]
@@ -679,7 +681,7 @@ mod tests {
         let (_d, steam, file) = steam_with(Some(crate::vdf::tests_support::REAL));
         let other = GameId { runner: "gog".into(), app_name: "g1".into(), title: "Other".into() };
         let mut spec2 = spec();
-        spec2.launch_options = "--no-gui \"heronite-rs://launch?appName=g1&runner=gog\"".into();
+        spec2.launch_options = "--no-gui \"heronite://launch?appName=g1&runner=gog\"".into();
         add_game(&steam, &game(), &spec(), &ArtFiles::default()).unwrap();
         add_game(&steam, &other, &spec2, &ArtFiles::default()).unwrap();
         remove_game(&steam, &game()).unwrap();

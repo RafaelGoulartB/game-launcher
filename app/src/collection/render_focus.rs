@@ -57,7 +57,7 @@ impl CollectionView {
     pub(super) fn active_facets(&self) -> Vec<(&'static str, SharedString)> {
         heronite_data::collection::FACET_KINDS
             .iter()
-            .filter_map(|k| self.ui.facet_filters.get(*k).map(|v| (k.as_str(), SharedString::from(v.to_string()))))
+            .flat_map(|k| self.ui.facet_filters.get(*k).iter().map(|v| (k.as_str(), SharedString::from(v.clone()))))
             .collect()
     }
 

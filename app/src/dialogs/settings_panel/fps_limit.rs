@@ -155,6 +155,7 @@ impl SettingsPanel {
                     m => method_name(*m).into(),
                 },
                 selected: *m == f.method,
+                dot: None,
                 group: None,
                 note: match m {
                     Method::Auto => Some(match tools.auto() {

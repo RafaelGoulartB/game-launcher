@@ -23,6 +23,7 @@ use heronite_data::collection::Game;
 use heronite_data::game_config::{self, Settings};
 use heronite_data::models::GameInfo;
 use heronite_data::sideload::{self, SideloadPlatform};
+use heronite_data::sideload_uninstall;
 use heronite_i18n::tr;
 use heronite_launch::SystemProbe;
 use heronite_wine::WineInstallation;
@@ -109,6 +110,8 @@ pub struct AddGameDialog {
     remove_prefix_too: bool,
     /// Wine prefix of the edited game when it may be deleted with it.
     removable_prefix: Option<String>,
+    /// Why `removable_prefix` is kept anyway: other games use it.
+    prefix_shared: Option<String>,
     error: String,
     notice: String,
     /// Console mode: focus of the rows, and the sheet / keyboard / picker on top.
@@ -187,6 +190,9 @@ impl AddGameDialog {
             let is_shared = prefix == game_config::shared_wine_prefix(&home) || Some(prefix.as_str()) == shared;
             (!prefix.is_empty() && Path::new(&prefix).exists() && !is_shared).then_some(prefix)
         });
+        let prefix_shared = removable_prefix
+            .as_deref()
+            .and_then(|p| sideload_uninstall::prefix_shared_note(&ctx.data_paths, &ctx.lib, &app_name, Path::new(p), &home));
 
         let prefix_dir = global.get("defaultWinePrefixDir").and_then(Value::as_str).unwrap_or("").to_string();
         let suggested = suggested_prefix(&prefix_dir, &title, &app_name);
@@ -276,6 +282,7 @@ impl AddGameDialog {
             confirm_remove: false,
             remove_prefix_too: false,
             removable_prefix,
+            prefix_shared,
             error: String::new(),
             notice: String::new(),
             console_list: Default::default(),

@@ -28,6 +28,9 @@ pub struct SelectOption {
     pub group: Option<SharedString>,
     /// Muted text after the label ("last used"...).
     pub note: Option<SharedString>,
+    /// Colour dot before the label (the closed select shows the selected
+    /// entry's).
+    pub dot: Option<Rgba>,
 }
 
 impl From<(SharedString, bool)> for SelectOption {
@@ -77,6 +80,7 @@ pub fn select_menu_field<V: 'static>(
     on_toggle: impl Fn(&mut V, &mut Window, &mut Context<V>) + 'static,
     on_pick: impl Fn(&mut V, usize, &mut Window, &mut Context<V>) + 'static,
 ) -> Div {
+    let value_dot = options.iter().find(|o| o.selected).and_then(|o| o.dot);
     let select = input_surface()
         .id(SharedString::from(format!("{id}-select")))
         .relative()
@@ -89,6 +93,8 @@ pub fn select_menu_field<V: 'static>(
         .when(open && !disabled, |d| d.border_color(theme::input_border_focus()))
         .when(disabled, |d| d.opacity(0.5).cursor_not_allowed())
         .when(!disabled, |d| d.cursor_pointer().on_click(cx.listener(move |this, _, w, cx| on_toggle(this, w, cx))))
+        .gap(px(9.))
+        .children(value_dot.map(dot))
         .child(div().min_w_0().truncate().child(value.into()))
         .child(div().absolute().right(px(14.)).top_0().bottom_0().flex().items_center().child(icon(
             Icon::ExpandMore,
@@ -134,6 +140,7 @@ pub fn select_menu_field<V: 'static>(
         let on_pick = on_pick.clone();
         list = list.child(
             menu_item(SharedString::from(format!("{id}-opt-{i}")), opt.selected)
+                .children(opt.dot.map(dot))
                 .child(div().flex_1().min_w_0().truncate().child(opt.label))
                 .children(opt.note.map(|n| div().flex_none().text_size(px(12.)).text_color(theme::text_muted()).child(n)))
                 .on_click(cx.listener(move |this, _, w, cx| on_pick(this, i, w, cx))),
@@ -179,6 +186,10 @@ pub fn select_menu_field<V: 'static>(
     let top = if label.is_some() { 22. + 44. } else { 44. };
     wrap = wrap.child(deferred(div().absolute().top(px(top)).left_0().right_0().occlude().child(menu)).with_priority(40));
     wrap
+}
+
+fn dot(color: Rgba) -> Div {
+    div().flex_none().size(px(8.)).rounded_full().bg(color)
 }
 
 fn group_heading(text: SharedString, first: bool) -> Div {

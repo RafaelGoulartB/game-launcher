@@ -414,6 +414,7 @@ impl SettingsPanel {
                     .map(|(i, (label, note))| SelectOption {
                         label: label.into(),
                         selected: i == selected,
+                        dot: None,
                         group: None,
                         note: note.map(Into::into),
                     })

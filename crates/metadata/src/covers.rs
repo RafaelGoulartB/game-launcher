@@ -40,12 +40,20 @@ pub fn steam_covers(app_id: &str) -> Covers {
     Covers { art_square: Some(steam_cdn(app_id, "library_600x900_2x.jpg")), art_cover: Some(steam_cdn(app_id, "header.jpg")) }
 }
 
-/// `steamGridKey`: the SteamGridDB key from Heroic's settings. Keys that
-/// Heroic encrypted with Electron's `safeStorage` (`sgdb:v1:` prefix) cannot
-/// be decrypted outside Electron; those give `None`.
+/// `steamGridKey`: the SteamGridDB key of the global settings
+/// (`config.json` → `defaultSettings`, set in Settings → Metadata), else the
+/// older copy in `store/config.json`. Keys encrypted with Electron's
+/// `safeStorage` (`sgdb:v1:` prefix) cannot be decrypted here; those give `None`.
 pub fn steamgrid_api_key(paths: &DataPaths) -> Option<String> {
-    let config: StoreConfigFile = json_store::read(&paths.store_config()).ok()?;
-    let key = config.settings?.get("steamGridDbApiKey")?.as_str()?.to_owned();
+    let global = json_store::read_value(&paths.global_config()).ok();
+    let saved = global.as_ref().and_then(|g| g.get("defaultSettings")?.get("steamGridDbApiKey")?.as_str()).map(str::trim);
+    let key = match saved {
+        Some(k) => k.to_owned(),
+        None => {
+            let config: StoreConfigFile = json_store::read(&paths.store_config()).ok()?;
+            config.settings?.get("steamGridDbApiKey")?.as_str()?.trim().to_owned()
+        }
+    };
     if key.is_empty() {
         return None;
     }
@@ -465,6 +473,12 @@ mod tests {
         std::fs::write(paths.store_config(), r#"{"settings":{"steamGridDbApiKey":"sgdb:v1:AAAA"}}"#).unwrap();
         assert_eq!(steamgrid_api_key(&paths), None);
         std::fs::write(paths.store_config(), r#"{"settings":{"steamGridDbApiKey":""}}"#).unwrap();
+        assert_eq!(steamgrid_api_key(&paths), None);
+        // The global settings win over the older copy, even when cleared.
+        std::fs::write(paths.store_config(), r#"{"settings":{"steamGridDbApiKey":"old"}}"#).unwrap();
+        std::fs::write(paths.global_config(), r#"{"defaultSettings":{"steamGridDbApiKey":" new "},"version":"v0"}"#).unwrap();
+        assert_eq!(steamgrid_api_key(&paths).as_deref(), Some("new"));
+        std::fs::write(paths.global_config(), r#"{"defaultSettings":{"steamGridDbApiKey":""},"version":"v0"}"#).unwrap();
         assert_eq!(steamgrid_api_key(&paths), None);
     }
 }

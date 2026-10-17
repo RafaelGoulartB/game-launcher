@@ -4,7 +4,9 @@ use heronite_data::models::{GameInfo, LocalGameMeta};
 use heronite_i18n::tr;
 
 use super::{Command, LaunchOptions, LaunchPlan, PlanContext, ProcessPlan, StopSpec};
-use crate::emulators::{emulator_definition, expand_argv, node_basename, node_dirname, resolve_profile_template, vars_for_rom};
+use crate::emulators::{
+    emulator_definition, expand_argv, node_basename, node_dirname, resolve_profile_template, vars_for_rom, UserEmulator,
+};
 use crate::env::Env;
 use crate::probe::Probe;
 use crate::settings::GameSettings;
@@ -43,6 +45,24 @@ pub fn emulator_executable(ctx: &PlanContext, meta: &LocalGameMeta) -> Option<St
         }
     }
     meta.remapped_executable.clone().filter(|s| !s.is_empty())
+}
+
+/// The emulator on its own, without a game (the Emulators page's "Open"):
+/// `flatpak run <id>`, the Windows executable in the default Wine prefix, or
+/// the executable from its folder. `settings` are the global defaults.
+pub fn open_emulator_command(ctx: &PlanContext, probe: &dyn Probe, settings: &GameSettings, e: &UserEmulator) -> Result<Command, String> {
+    if e.launch_kind == "flatpak" {
+        let id = e.flatpak_id.clone().filter(|f| !f.is_empty()).ok_or_else(|| tr!("This emulator has no Flatpak id").to_string())?;
+        return Ok(Command { program: "flatpak".into(), args: vec!["run".into(), id], env: Env::new(), cwd: None });
+    }
+    if e.executable.is_empty() || !probe.exists(&e.executable) {
+        return Err(tr!("Emulator executable was not found").into());
+    }
+    if e.launch_kind == "wine" || e.executable.to_lowercase().ends_with(".exe") {
+        return crate::wine_tools::run_exe_command(ctx, probe, settings, &e.executable, &[]).map(|t| t.command);
+    }
+    let cwd = e.install_dir.clone().filter(|d| !d.is_empty()).unwrap_or_else(|| node_dirname(&e.executable));
+    Ok(Command { program: e.executable.clone(), args: vec![], env: Env::new(), cwd: Some(cwd) })
 }
 
 pub(super) fn emulator_plan(

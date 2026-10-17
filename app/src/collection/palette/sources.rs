@@ -504,15 +504,14 @@ pub(super) fn view_entries(ui: &UiState, facets: &FacetOptions, categories: &Cat
         Icon::Close,
         "reset filters facets limpar filtros redefinir",
     );
-    if !ui.facet_filters.is_active() && ui.categories.is_empty() {
+    if !ui.facet_filters.is_active() && ui.categories.is_empty() && ui.statuses.is_empty() {
         clear.disable(tr!("No filter is active"));
     }
     v.push(clear);
     for kind in FACET_KINDS {
-        let active = ui.facet_filters.get(kind).map(fold);
         let label = facet_label(kind);
         for o in facets.get(kind) {
-            let on = active.as_deref() == Some(fold(&o.value).as_str());
+            let on = ui.facet_filters.contains(kind, &o.value);
             let title = if on {
                 tr!("Remove filter {kind}: {value}", kind = label, value = o.value)
             } else {

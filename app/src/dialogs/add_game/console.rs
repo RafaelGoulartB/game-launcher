@@ -86,7 +86,9 @@ impl AddGameDialog {
         let title = text_of(&self.title, cx);
         if self.confirm_remove {
             let mut rows = Vec::new();
-            if self.removable_prefix.is_some() {
+            if let Some(note) = &self.prefix_shared {
+                rows.push(Row::toggle("remove-prefix", tr!("Also delete the Wine prefix"), false).desc(note.clone()).enabled(false));
+            } else if self.removable_prefix.is_some() {
                 rows.push(
                     Row::toggle("remove-prefix", tr!("Also delete the Wine prefix"), self.remove_prefix_too)
                         .desc(tr!("Saves and settings inside the prefix will be lost.")),

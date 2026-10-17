@@ -31,7 +31,7 @@ pub struct GameId {
 /// Command line pieces of a launch request for this app.
 ///
 /// `--launch <runner> <appName>` is what `.desktop` files use; Steam gets the
-/// Heroic-compatible protocol URL (`heronite-rs://launch?appName=..&runner=..`).
+/// Heroic-compatible protocol URL (`heronite://launch?appName=..&runner=..`).
 pub fn launch_url(scheme: &str, runner: &str, app_name: &str) -> String {
     format!("{scheme}://launch?appName={app_name}&runner={runner}")
 }

@@ -3,7 +3,6 @@
 
 use gpui_kit::prelude::*;
 use gpui_kit::*;
-use heronite_data::FacetKind;
 
 use super::header::Menu;
 use super::{context_menu, CollectionView};
@@ -11,8 +10,10 @@ use super::{context_menu, CollectionView};
 impl CollectionView {
     /// `HERONITE_DEBUG_MENU=<card key>` opens its context menu (with the
     /// status flyout; `HERONITE_DEBUG_MENU_CATEGORIES=1` for the categories
-    /// one), `HERONITE_DEBUG_DROPDOWN=view|nav|facets|categories|stores`
-    /// opens a header menu, `HERONITE_DEBUG_DIALOG=<name>` opens a dialog on
+    /// one), `HERONITE_DEBUG_DROPDOWN=view|nav` opens a header menu
+    /// (`facets`, `categories`, `stores` or `view:<text>`: the View menu with
+    /// that search typed; `views`: its views in edit mode; `views-select`:
+    /// their select open), `HERONITE_DEBUG_DIALOG=<name>` opens a dialog on
     /// the first render that has a window (`open_pending_debug_dialog`).
     pub(super) fn apply_debug_env(&mut self) {
         if let Some(key) = crate::env::value("HERONITE_DEBUG_MENU") {
@@ -29,23 +30,27 @@ impl CollectionView {
             self.pending_debug_dialog = Some(which);
         }
         if let Some(menu) = crate::env::value("HERONITE_DEBUG_DROPDOWN") {
+            let query = match menu.as_str() {
+                "facets" => Some("developer:"),
+                "categories" => Some("category:"),
+                "stores" => Some("store:"),
+                m => m.strip_prefix("view:"),
+            };
             self.open_menu = match menu.as_str() {
                 "view" | "install" | "sort" | "status" => Some(Menu::View),
+                "views" => {
+                    self.view_menu.set_editing(true);
+                    Some(Menu::View)
+                }
+                "views-select" => {
+                    self.view_menu.set_select_open(true);
+                    Some(Menu::View)
+                }
                 "nav" => Some(Menu::Nav),
-                "facets" => {
-                    self.facet_flyout = Some(FacetKind::Developer);
-                    Some(Menu::View)
-                }
-                "categories" => {
-                    self.category_flyout = true;
-                    Some(Menu::View)
-                }
-                "stores" => {
-                    self.facet_flyout = Some(FacetKind::Store);
-                    Some(Menu::View)
-                }
+                _ if query.is_some() => Some(Menu::View),
                 _ => None,
             };
+            self.view_menu.debug_query = query.map(str::to_owned);
         }
     }
 

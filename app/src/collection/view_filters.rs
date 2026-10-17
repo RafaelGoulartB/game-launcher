@@ -88,16 +88,6 @@ impl CollectionView {
         cx.notify();
     }
 
-    pub(super) fn clear_category_filter(&mut self, cx: &mut Context<Self>) {
-        if self.ui.categories.is_empty() {
-            return;
-        }
-        self.ui.categories.clear();
-        self.save_ui();
-        self.refresh_groups();
-        cx.notify();
-    }
-
     /// Re-reads the categories after an edit (the library itself is unchanged).
     pub(super) fn reload_categories(&mut self, cx: &mut Context<Self>) {
         self.categories = Categories::load(&self.data_paths);

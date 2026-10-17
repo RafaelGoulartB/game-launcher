@@ -241,7 +241,7 @@ mod tests {
         ShortcutSpec {
             exe: "\"/opt/heronite-rs/heronite-rs\"".into(),
             start_dir: "\"/opt/heronite-rs\"".into(),
-            launch_options: "--no-gui \"heronite-rs://launch?appName=Quail&runner=legendary\"".into(),
+            launch_options: "--no-gui \"heronite://launch?appName=Quail&runner=legendary\"".into(),
             icon: Some("/icons/Quail.png".into()),
             last_play_time: Some(1),
         }
@@ -299,7 +299,7 @@ mod tests {
         let steam = steam_dir(dir.path());
         let fake = start(Box::new(|expr| {
             if expr.contains("allApps") {
-                json!([{"appid": 3_000_000_001u64, "appName": "Cool Game", "exe": "", "launchOptions": "\"heronite-rs://launch/legendary/Quail\""}])
+                json!([{"appid": 3_000_000_001u64, "appName": "Cool Game", "exe": "", "launchOptions": "\"heronite://launch/legendary/Quail\""}])
             } else {
                 json!(true)
             }
@@ -369,7 +369,7 @@ mod tests {
         assert!(h.sentinel.exists());
         let text = fs::read_to_string(&wrapper).unwrap();
         assert!(text.contains("Name=Cool Game\n"));
-        assert!(text.contains("Exec=\"/opt/heronite-rs/heronite-rs\" --no-gui \"heronite-rs://launch?appName=Quail&runner=legendary\"\n"));
+        assert!(text.contains("Exec=\"/opt/heronite-rs/heronite-rs\" --no-gui \"heronite://launch?appName=Quail&runner=legendary\"\n"));
         assert!(text.contains("Path=/opt/heronite-rs\n"));
         assert!(text.contains("NoDisplay=true"));
         let args = fs::read_to_string(&log).unwrap();

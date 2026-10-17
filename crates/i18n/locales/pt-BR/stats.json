@@ -298,5 +298,11 @@
   "▲ +{pct}% vs {name}": "▲ +{pct}% vs {name}",
   "▲ {pct}% vs {name}": "▲ {pct}% vs {name}",
   "▼ {pct}% vs {name}": "▼ {pct}% vs {name}",
-  "Completed": "Concluído"
+  "Completed": "Concluído",
+  "Also used by {games}, so it is kept.": "Também é usado por {games} e será mantido.",
+  "Also used by {n} other game, so it is kept.": "Também é usado por mais {n} jogo e será mantido.",
+  "Also used by {n} other games, so it is kept.": "Também é usado por mais {n} jogos e será mantido.",
+  "Wine prefix {prefix}: {note}": "Prefixo Wine {prefix}: {note}",
+  "{games} and {n} other game": "{games} e mais {n} jogo",
+  "{games} and {n} other games": "{games} e mais {n} jogos"
 }

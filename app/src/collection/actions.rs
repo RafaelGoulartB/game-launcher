@@ -53,14 +53,21 @@ impl CollectionView {
     pub(super) fn refresh_groups(&mut self) {
         let Some(lib) = self.lib.clone() else { return };
         let playing = &self.playing;
-        let (ui, categories, updates) = (&self.ui, &self.categories, &self.update_apps);
-        let keep = |g: &heronite_data::CollectionGame| {
-            categories.matches(&ui.categories, &g.runner, &g.app_name) && (!ui.only.updates || updates.contains(&g.app_name))
-        };
+        let keep = |g: &heronite_data::CollectionGame| self.keeps_game(g, &lib.statuses);
         let groups =
-            data::build_groups(&lib, ui, &self.search, &keep, &|key| lib.get(key).is_some_and(|g| playing.contains_key(&g.app_name)));
+            data::build_groups(&lib, &self.ui, &self.search, &keep, &|key| lib.get(key).is_some_and(|g| playing.contains_key(&g.app_name)));
         self.set_groups(groups);
         self.refresh_focus();
+    }
+
+    /// The list's conditions that live in the app: the selected categories
+    /// and statuses, and "Only with an update".
+    pub(super) fn keeps_game(&self, g: &heronite_data::CollectionGame, statuses: &[heronite_data::models::CompletionStatus]) -> bool {
+        let ui = &self.ui;
+        self.categories.matches(&ui.categories, &g.runner, &g.app_name)
+            && (!ui.only.updates || self.update_apps.contains(&g.app_name))
+            && (ui.statuses.is_empty()
+                || ui.statuses.contains(&heronite_data::status::resolve_status_id(g.status_raw.as_deref(), statuses)))
     }
 
     fn refresh_focus(&mut self) {

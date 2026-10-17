@@ -42,7 +42,7 @@
   "Exit to tray": "Sair para a bandeja",
   "Start minimized": "Iniciar minimizado",
   "Dark tray icon (needs restart)": "Ícone escuro na bandeja (requer reinício)",
-  "Hide the window for heronite-rs:// launches": "Ocultar a janela em inicializações por heronite-rs://",
+  "Hide the window for heronite:// launches": "Ocultar a janela em inicializações por heronite://",
   "Add desktop shortcuts automatically": "Adicionar atalhos na área de trabalho automaticamente",
   "Add games to the start menu automatically": "Adicionar jogos ao menu iniciar automaticamente",
   "Add games to Steam automatically": "Adicionar jogos ao Steam automaticamente",
@@ -137,7 +137,7 @@
   "When a game starts": "Ao iniciar um jogo",
   "Game Shortcuts": "Atalhos dos jogos",
   "Use Dark Tray Icon (needs restart)": "Usar ícone escuro na bandeja (requer reinício)",
-  "Hide Heronite window when launching games from heronite-rs:// links": "Ocultar a janela do Heronite ao iniciar jogos por links heronite-rs://",
+  "Hide Heronite window when launching games from heronite:// links": "Ocultar a janela do Heronite ao iniciar jogos por links heronite://",
   "Keeps the window hidden when a game is launched from an external shortcut, like the 'Add to Steam' feature.": "Mantém a janela oculta quando um jogo é iniciado por um atalho externo, como o recurso “Adicionar ao Steam”.",
   "Add games to start menu automatically": "Adicionar atalhos dos jogos no menu iniciar automaticamente",
   "Maximum Number of Workers when downloading": "Número máximo de workers ao baixar",
@@ -517,5 +517,7 @@
   "Reset this tab": "Restaurar esta aba",
   "Show the command and variables": "Mostrar o comando e as variáveis",
   "The marked settings go back to the game defaults": "As opções marcadas voltam ao padrão dos jogos",
-  "What a launch runs now, and the setting each variable comes from": "O que uma abertura roda agora, e de qual opção vem cada variável"
+  "What a launch runs now, and the setting each variable comes from": "O que uma abertura roda agora, e de qual opção vem cada variável",
+  "Check for game updates at startup": "Procurar atualizações de jogos ao iniciar",
+  "Off, updates are only looked for when you refresh a store's library. Automatic updates still check on their own.": "Desligado, as atualizações só são procuradas quando você atualiza a biblioteca de uma loja. As atualizações automáticas continuam verificando por conta própria."
 }

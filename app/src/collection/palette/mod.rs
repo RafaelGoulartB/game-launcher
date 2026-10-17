@@ -238,6 +238,9 @@ impl CollectionView {
         if self.modal_open(cx) {
             return false;
         }
+        if self.view_menu_key(ks, window, cx) {
+            return true;
+        }
         if ctrl {
             match key {
                 "k" => {
@@ -331,6 +334,7 @@ impl CollectionView {
             ViewCmd::ClearFilters => {
                 self.ui.clear_facets();
                 self.ui.categories.clear();
+                self.ui.statuses.clear();
                 self.save_ui();
                 self.refresh_groups();
             }

@@ -534,6 +534,7 @@ impl SettingsPanel {
             .map(|o| SelectOption {
                 label: o.label.clone().into(),
                 selected: o.name == current,
+                dot: None,
                 group: o.group.map(SharedString::from),
                 note: o.note.map(SharedString::from),
             })

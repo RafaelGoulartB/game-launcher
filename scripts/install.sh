@@ -39,11 +39,11 @@ Exec=$PREFIX/heronite-rs %U
 Icon=$ICON_NAME
 Terminal=false
 Categories=Game;
-MimeType=x-scheme-handler/heronite-rs;
+MimeType=x-scheme-handler/heronite;x-scheme-handler/heronite-rs;
 StartupWMClass=com.heronite.rs
 DESKTOP
 
-# heronite-rs:// links (heroic:// stays with Heroic).
-command -v xdg-mime >/dev/null && xdg-mime default com.heronite.rs.desktop x-scheme-handler/heronite-rs >/dev/null 2>&1 || true
+# heronite:// links, and heronite-rs:// from before the rename (heroic:// stays with Heroic).
+command -v xdg-mime >/dev/null && xdg-mime default com.heronite.rs.desktop x-scheme-handler/heronite x-scheme-handler/heronite-rs >/dev/null 2>&1 || true
 command -v update-desktop-database >/dev/null && update-desktop-database "$APP_DIR" >/dev/null 2>&1 || true
 echo "Installed heronite-rs to $PREFIX"

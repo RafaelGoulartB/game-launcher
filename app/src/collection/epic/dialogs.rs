@@ -1,11 +1,13 @@
 //! Store dialogs opened from the context menu and the confirmations behind
 //! them (Epic, GOG, Amazon Games).
 
+use std::path::Path;
 use std::rc::Rc;
 
 use gpui_kit::prelude::*;
 use gpui_kit::*;
 use heronite_data::game_config;
+use heronite_data::sideload_uninstall::prefix_shared_note;
 use serde_json::Value;
 
 use super::Request;
@@ -106,13 +108,20 @@ impl CollectionView {
         let mut spec = Confirm::new("epic-uninstall", tr!("Uninstall"), tr!("Do you want to uninstall \"{title}\"?", title = game.title));
         if windows && cfg!(target_os = "linux") && !prefix.is_empty() {
             let protect = prefix == default_prefix;
+            let shared = (!protect)
+                .then(|| {
+                    self.lib.as_deref().and_then(|lib| prefix_shared_note(&self.data_paths, lib, &game.app_name, Path::new(&prefix), &home))
+                })
+                .flatten();
             spec.toggles.push(Toggle {
                 label: tr!("Remove prefix: {prefix}", prefix),
                 value: false,
-                disabled: protect,
+                disabled: protect || shared.is_some(),
                 note: Some(if protect {
                     tr!("The Wine prefix for this game is the default prefix. If you really want to delete it, you have to do it manually.")
                         .into()
+                } else if let Some(shared) = shared {
+                    shared
                 } else {
                     tr!("Note: This can't be undone and will also remove not backed up save files.").into()
                 }),

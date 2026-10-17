@@ -1,9 +1,10 @@
-//! Settings → Metadata: IGDB credentials, background fill, image copy,
-//! per-field source priority, bulk download.
+//! Settings → Metadata: IGDB credentials, SteamGridDB key, background fill,
+//! image copy, per-field source priority, bulk download.
 
 use gpui_kit::component::input::InputState;
 use gpui_kit::prelude::*;
 use gpui_kit::*;
+use heronite_data::game_config;
 use heronite_data::models::MetadataSettings;
 use heronite_data::settings::{self, default_field_priority, EffectiveSettings, METADATA_FIELDS};
 use heronite_i18n::{n_, tr};
@@ -21,6 +22,7 @@ use crate::ui::icon;
 pub struct State {
     client_id: Entity<InputState>,
     secret: Entity<InputState>,
+    sgdb_key: Entity<InputState>,
     testing: bool,
     ok_message: Option<SharedString>,
     advanced_open: bool,
@@ -33,7 +35,7 @@ const SOURCES: [(&str, &str); 5] =
     [("auto", n_!("Auto (IGDB first)")), ("igdb", "IGDB"), ("steam", "Steam"), ("store", n_!("Store")), ("lutris", "Lutris")];
 
 impl State {
-    pub fn new(_ctx: &PageCtx, s: &EffectiveSettings, window: &mut Window, cx: &mut Context<SettingsPage>) -> Self {
+    pub fn new(ctx: &PageCtx, s: &EffectiveSettings, window: &mut Window, cx: &mut Context<SettingsPage>) -> Self {
         let client_id = new_input(window, cx, &s.metadata.igdb_client_id, "");
         on_commit(&client_id, window, cx, |d: &mut SettingsPage, value, _, cx| {
             if value != d.settings.metadata.igdb_client_id {
@@ -50,7 +52,14 @@ impl State {
                 persist(d, cx, |m| m.igdb_client_secret = value);
             }
         });
-        Self { client_id, secret, testing: false, ok_message: None, advanced_open: false, open_select: None }
+        let saved_key = heronite_metadata::covers::steamgrid_api_key(&ctx.data_paths).unwrap_or_default();
+        let sgdb_key = cx.new(|cx| {
+            let mut st = InputState::new(window, cx).masked(true);
+            st.set_value(saved_key, window, cx);
+            st
+        });
+        on_commit(&sgdb_key, window, cx, |d: &mut SettingsPage, value, _, cx| save_sgdb_key(d, value, cx));
+        Self { client_id, secret, sgdb_key, testing: false, ok_message: None, advanced_open: false, open_select: None }
     }
 }
 
@@ -61,6 +70,18 @@ fn persist(d: &mut SettingsPage, cx: &mut Context<SettingsPage>, edit: impl FnOn
     d.metadata.ok_message = None;
     let res = settings::save_metadata(&d.ctx.data_paths, &m);
     d.saved(res, cx);
+}
+
+/// `steamGridDbApiKey` of the global settings: adds SteamGridDB to the cover
+/// and background search.
+fn save_sgdb_key(d: &mut SettingsPage, value: String, cx: &mut Context<SettingsPage>) {
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/".into());
+    let value = value.trim().to_string();
+    d.metadata.ok_message = None;
+    d.error = game_config::set_global_setting(&d.ctx.data_paths, &home, "steamGridDbApiKey", value.into())
+        .err()
+        .map(|err| format!("{err:#}").into());
+    cx.notify();
 }
 
 fn preferred_source(d: &SettingsPage, field: &str) -> String {
@@ -144,6 +165,11 @@ pub fn render(d: &mut SettingsPage, _window: &mut Window, cx: &mut Context<Setti
         .child(div().px(px(6.)).pb(px(8.)).child(meta_text(tr!("Create a Twitch app to get IGDB keys: https://dev.twitch.tv/console"))))
         .child(creds)
         .child(actions)
+        .child(caption("SteamGridDB"))
+        .child(div().px(px(6.)).pb(px(8.)).child(meta_text(tr!(
+            "Optional. Adds SteamGridDB covers and backgrounds to the image search. Get a key at https://www.steamgriddb.com/profile/preferences/api"
+        ))))
+        .child(card_box().py(px(12.)).child(labeled(tr!("SteamGridDB API key"), input_box(&d.metadata.sgdb_key, false))))
         .child(caption(tr!("Images & fields")))
         .child(images);
 
@@ -213,6 +239,7 @@ pub(super) fn console_rows(d: &SettingsPage, cx: &App) -> Vec<crate::console::li
     use crate::console::list::Row;
     let m = &d.settings.metadata;
     let secret = d.metadata.secret.read(cx).value().to_string();
+    let sgdb_key = d.metadata.sgdb_key.read(cx).value().to_string();
     let mut rows = vec![
         Row::header(tr!("Twitch / IGDB API")),
         Row::text("client-id", tr!("Client ID"), d.metadata.client_id.read(cx).value().to_string())
@@ -221,6 +248,9 @@ pub(super) fn console_rows(d: &SettingsPage, cx: &App) -> Vec<crate::console::li
         Row::action("test", if d.metadata.testing { tr!("Testing\u{2026}") } else { tr!("Test IGDB") })
             .enabled(!d.metadata.testing)
             .desc(d.metadata.ok_message.clone().unwrap_or_default()),
+        Row::header("SteamGridDB"),
+        Row::text("sgdb-key", tr!("SteamGridDB API key"), "\u{2022}".repeat(sgdb_key.chars().count().min(24)))
+            .desc(tr!("Optional. Get a key at steamgriddb.com/profile/preferences/api")),
         Row::header(tr!("Images and fields")),
         Row::toggle("autofill", tr!("Fill missing metadata in the background"), m.auto_fill_missing),
         Row::toggle("download", tr!("Copy covers to disk"), m.download_images).desc(tr!("Off keeps the CDN addresses instead")),
@@ -260,6 +290,11 @@ pub(super) fn console_apply(
                 let text = text.trim().to_string();
                 d.metadata.secret.update(cx, |s, cx| s.set_value(text.clone(), window, cx));
                 persist(d, cx, |m| m.igdb_client_secret = text);
+            }),
+            "sgdb-key" => d.console_osk(tr!("SteamGridDB API key"), "", window, cx, |d, text, window, cx| {
+                let text = text.trim().to_string();
+                d.metadata.sgdb_key.update(cx, |s, cx| s.set_value(text.clone(), window, cx));
+                save_sgdb_key(d, text, cx);
             }),
             "test" => test_igdb(d, cx),
             _ => {}

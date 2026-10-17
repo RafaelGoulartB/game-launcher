@@ -341,7 +341,9 @@ impl AddGameDialog {
             "Remove {title} from your library? The game's files are not deleted. Its playtime, status, notes, images and Collection data are removed, and so are its shortcuts.",
             title = if title.trim().is_empty() { tr!("this game") } else { title.trim() }
         )));
-        if let Some(prefix) = &self.removable_prefix {
+        if let (Some(prefix), Some(note)) = (&self.removable_prefix, &self.prefix_shared) {
+            col = col.child(meta_text(tr!("Wine prefix {prefix}: {note}", prefix, note)));
+        } else if let Some(prefix) = &self.removable_prefix {
             col = col
                 .child(checkbox("ag-remove-prefix", self.remove_prefix_too, tr!("Also delete the Wine prefix")).on_click(cx.listener(
                     |this, _, _, cx| {

@@ -576,7 +576,7 @@ mod tests {
     fn lists_adds_removes_and_sets_artwork() {
         let fake = start(Box::new(|expr| {
             if expr.contains("appStore.allApps") {
-                json!([{"appid": -1_294_967_295i64, "appName": "Control", "exe": "\"/bin/heronite-rs\"", "launchOptions": "--no-gui \"heronite-rs://launch?appName=Calluna&runner=legendary\""}])
+                json!([{"appid": -1_294_967_295i64, "appName": "Control", "exe": "\"/bin/heronite-rs\"", "launchOptions": "--no-gui \"heronite://launch?appName=Calluna&runner=legendary\""}])
             } else if expr.contains("AddShortcut") {
                 json!(3_123_456_789u64)
             } else {
@@ -596,7 +596,7 @@ mod tests {
                 name: "Ctrl \"Q\"",
                 exe: "\"/bin/heronite-rs\"",
                 start_dir: "\"/bin\"",
-                launch_options: "--no-gui \"heronite-rs://launch?appName=A&runner=sideload\"",
+                launch_options: "--no-gui \"heronite://launch?appName=A&runner=sideload\"",
                 icon: Some("/icons/A.png"),
             })
             .unwrap();

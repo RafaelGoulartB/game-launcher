@@ -20,7 +20,7 @@ Security fixes go into the latest release. Please update to it before reporting.
 Heronite handles data that must stay private and starts programs on your machine. Reports about these are especially welcome:
 
 - **Credentials:** the Epic Games session (legendary's `user.json` in the data folder), IGDB keys, and other tokens Heronite stores or sends.
-- **Running programs:** anything that makes Heronite run a command or executable the user did not choose, for example through launch options, game metadata, `heronite-rs://` links, or downloaded Wine/Proton builds.
+- **Running programs:** anything that makes Heronite run a command or executable the user did not choose, for example through launch options, game metadata, `heronite://` links (and the older `heronite-rs://`), or downloaded Wine/Proton builds.
 - **Files:** writing or deleting files outside the folders Heronite is meant to touch.
 - **Network:** sending data to a server the user did not expect.
 

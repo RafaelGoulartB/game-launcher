@@ -31,15 +31,10 @@ fn card_vm(g: &CollectionGame, playing: bool) -> Arc<CardVm> {
     })
 }
 
-/// `keep`: the app's own conditions (categories, games with an update).
-pub(super) fn build_groups(
-    lib: &Library,
-    ui: &UiState,
-    search: &str,
-    keep: &dyn Fn(&CollectionGame) -> bool,
-    is_playing: &dyn Fn(&str) -> bool,
-) -> Vec<GroupVm> {
-    let query = ViewQuery {
+/// The list's query: the search and the View menu's filters and sort (the
+/// app's own conditions are [`CollectionView::keeps_game`](super::CollectionView::keeps_game)).
+pub(super) fn view_query(ui: &UiState, search: &str) -> ViewQuery {
+    ViewQuery {
         search: search.to_string(),
         install: ui.install_filter,
         facets: ui.facet_filters.clone(),
@@ -47,8 +42,18 @@ pub(super) fn build_groups(
         descending: ui.sort_descending,
         favourites_only: ui.only.favourites,
         offline_only: ui.only.offline,
-    };
-    let filtered = collection::filter_games_where(&lib.games, &query, keep);
+    }
+}
+
+/// `keep`: the app's own conditions (categories, statuses, games with an update).
+pub(super) fn build_groups(
+    lib: &Library,
+    ui: &UiState,
+    search: &str,
+    keep: &dyn Fn(&CollectionGame) -> bool,
+    is_playing: &dyn Fn(&str) -> bool,
+) -> Vec<GroupVm> {
+    let filtered = collection::filter_games_where(&lib.games, &view_query(ui, search), keep);
     if !ui.group_by_status {
         return vec![GroupVm {
             id: "all".into(),

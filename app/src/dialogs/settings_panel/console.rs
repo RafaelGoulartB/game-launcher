@@ -694,7 +694,7 @@ impl SettingsPanel {
             self.c_toggle("noTrayIcon", false, tr!("Hide the tray icon (needs restart)"), None, false),
             Self::c_header(tr!("When a game starts")),
             self.c_toggle("minimizeOnLaunch", false, tr!("Minimize after game launch"), None, false),
-            self.c_toggle("hideWindowOnProtocolLaunch", false, tr!("Hide the window for heronite-rs:// launches"), None, false),
+            self.c_toggle("hideWindowOnProtocolLaunch", false, tr!("Hide the window for heronite:// launches"), None, false),
             Self::c_header(tr!("Game Shortcuts")),
             self.c_toggle("addDesktopShortcuts", false, tr!("Add desktop shortcuts automatically"), None, false),
             self.c_toggle("addStartMenuShortcuts", false, tr!("Add games to the start menu automatically"), None, false),
@@ -751,6 +751,7 @@ impl SettingsPanel {
             self.c_path("altNileBin", tr!("Alternative nile binary"), false, cx),
             self.c_toggle("downloadNoHttps", false, tr!("Download without HTTPS (LanCache)"), None, false),
             Self::c_header(tr!("Updates")),
+            self.c_toggle("checkForUpdatesOnStartup", true, tr!("Check for game updates at startup"), None, false),
             self.c_toggle("autoUpdateGames", false, tr!("Update games automatically"), None, false),
         ]
     }

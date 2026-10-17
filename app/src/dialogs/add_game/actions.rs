@@ -106,8 +106,11 @@ impl AddGameDialog {
         }
         self.saving = true;
         self.error.clear();
-        let (paths, home, with_prefix) =
-            (self.ctx.data_paths.clone(), self.home.clone(), self.remove_prefix_too && self.removable_prefix.is_some());
+        let (paths, home, with_prefix) = (
+            self.ctx.data_paths.clone(),
+            self.home.clone(),
+            self.remove_prefix_too && self.removable_prefix.is_some() && self.prefix_shared.is_none(),
+        );
         cx.spawn(async move |this, cx| {
             let res = cx
                 .background_spawn(async move {

@@ -42,6 +42,7 @@ mod timeline;
 mod update_banner;
 mod user_actions;
 mod view_filters;
+mod view_menu;
 mod welcome;
 pub use screenshots::screenshots_global;
 pub mod stage;
@@ -56,7 +57,7 @@ use gpui_kit::prelude::*;
 use gpui_kit::*;
 use heronite_data::hltb::WikiCache;
 use heronite_data::ui_state::UiState;
-use heronite_data::{AppPaths, DataPaths, FacetKind, Library};
+use heronite_data::{AppPaths, DataPaths, Library};
 use heronite_images::ImageRef;
 
 use crate::images::ImageStore;
@@ -90,9 +91,8 @@ pub struct CollectionView {
     menu_parts: u8,
     /// Smooth mouse-wheel scrolling of the game list.
     wheel: WheelScroll,
-    facet_flyout: Option<FacetKind>,
-    /// The View menu's Category flyout is open.
-    category_flyout: bool,
+    /// The View menu's search box, typed text and saved-view name box.
+    view_menu: view_menu::ViewMenu,
     refreshing: bool,
     runtime: Arc<GameRuntime>,
     /// app_name -> started tracking (Launching/Running).
@@ -188,6 +188,7 @@ impl CollectionView {
         }
 
         let search_input = Self::new_search_input(window, cx);
+        let view_menu = view_menu::ViewMenu::new(window, cx);
         let onboarding = onboarding::OnboardingGlue::load(&app_paths);
         let mut this = Self {
             started,
@@ -207,8 +208,7 @@ impl CollectionView {
             menu_close: None,
             menu_parts: 0,
             wheel: WheelScroll::default(),
-            facet_flyout: None,
-            category_flyout: false,
+            view_menu,
             refreshing: false,
             runtime,
             playing: HashMap::new(),
@@ -339,6 +339,7 @@ impl CollectionView {
         self.open_pending_debug_dialog(window, cx);
         self.drive_epic(window, cx);
         self.sync_extras(window, cx);
+        self.sync_view_menu(window, cx);
         self.sync_onboarding(window, cx);
         self.sync_language(window, cx);
         self.sync_facts(cx);

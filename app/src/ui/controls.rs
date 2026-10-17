@@ -243,7 +243,14 @@ pub enum ButtonKind {
     Danger,
 }
 
-fn button_base(id: impl Into<ElementId>, kind: ButtonKind, label: SharedString, small: bool, enabled: bool) -> Stateful<Div> {
+fn button_base(
+    id: impl Into<ElementId>,
+    kind: ButtonKind,
+    ic: Option<Icon>,
+    label: SharedString,
+    small: bool,
+    enabled: bool,
+) -> Stateful<Div> {
     let b = div()
         .id(id)
         .flex()
@@ -255,6 +262,15 @@ fn button_base(id: impl Into<ElementId>, kind: ButtonKind, label: SharedString, 
         .rounded_full()
         .whitespace_nowrap()
         .text_size(px(13.))
+        .when_some(ic, |b, ic| {
+            let color = match kind {
+                ButtonKind::Primary => theme::on_accent(),
+                ButtonKind::Glass => theme::button_text(),
+                ButtonKind::Ghost => theme::text_muted(),
+                ButtonKind::Danger => theme::danger_text(),
+            };
+            b.child(icon(ic, px(if small { 15. } else { 16. }), color))
+        })
         .child(label);
     let b = match kind {
         ButtonKind::Glass => b.bg(theme::button_fill()).border_1().border_color(theme::button_border()).text_color(theme::button_text()),
@@ -276,12 +292,30 @@ fn button_base(id: impl Into<ElementId>, kind: ButtonKind, label: SharedString, 
 
 /// Pill button (36px, 13px, sentence case). See [`ButtonKind`] for the look.
 pub fn button(id: impl Into<ElementId>, kind: ButtonKind, label: impl Into<SharedString>) -> Stateful<Div> {
-    button_base(id, kind, label.into(), false, true)
+    button_base(id, kind, None, label.into(), false, true)
 }
 
 /// Small pill button (30px).
 pub fn button_sm(id: impl Into<ElementId>, kind: ButtonKind, label: impl Into<SharedString>) -> Stateful<Div> {
-    button_base(id, kind, label.into(), true, true)
+    button_base(id, kind, None, label.into(), true, true)
+}
+
+/// A [`button_sm`] with an icon before the label that only reacts when
+/// `enabled`; disabled ones are drawn at 45% opacity.
+pub fn icon_button_sm(
+    id: impl Into<ElementId>,
+    kind: ButtonKind,
+    ic: Icon,
+    label: impl Into<SharedString>,
+    enabled: bool,
+    on_click: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static,
+) -> Stateful<Div> {
+    let b = button_base(id, kind, Some(ic), label.into(), true, enabled);
+    if enabled {
+        b.on_click(on_click)
+    } else {
+        b
+    }
 }
 
 /// A [`button`] that only reacts when `enabled`; disabled ones are drawn at
@@ -293,7 +327,7 @@ pub fn action_button(
     enabled: bool,
     on_click: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static,
 ) -> Stateful<Div> {
-    let b = button_base(id, kind, label.into(), false, enabled);
+    let b = button_base(id, kind, None, label.into(), false, enabled);
     if enabled {
         b.on_click(on_click)
     } else {

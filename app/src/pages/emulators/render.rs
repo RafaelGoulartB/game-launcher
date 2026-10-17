@@ -13,7 +13,7 @@ use crate::dialogs::scan_roms::{profile_label, ScanInitial};
 use crate::icons::Icon;
 use crate::pages::{status_pill, tag_pill, PageEvent};
 use crate::theme;
-use crate::ui::controls::{action_button, button, button_sm, card_box, ButtonKind};
+use crate::ui::controls::{action_button, button, button_sm, card_box, icon_button_sm, ButtonKind};
 use crate::ui::fields::{meta_text, paragraph};
 use crate::ui::icon;
 
@@ -128,7 +128,7 @@ impl EmulatorsPage {
     }
 
     /// Name, launch kind, health, location, games using it, platforms and the
-    /// Edit / Duplicate / Remove buttons.
+    /// Open / Edit / Duplicate / Remove buttons.
     fn render_emulator_header(&self, s: &EmulatorSummary, cx: &mut Context<Self>) -> Div {
         let e = &s.emulator;
         let id = e.id.clone();
@@ -156,6 +156,17 @@ impl EmulatorsPage {
             .flex_wrap()
             .justify_end()
             .gap(px(8.))
+            .child({
+                let id = id.clone();
+                icon_button_sm(
+                    SharedString::from(format!("emu-open-{id}")),
+                    ButtonKind::Primary,
+                    Icon::PlayArrow,
+                    tr!("Open"),
+                    s.health.is_ok(),
+                    cx.listener(move |this, _, _, cx| this.open_emulator(&id, cx)),
+                )
+            })
             .child({
                 let id = id.clone();
                 button_sm(SharedString::from(format!("emu-edit-{id}")), ButtonKind::Glass, tr!("Edit"))
